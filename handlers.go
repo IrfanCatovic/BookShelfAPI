@@ -137,6 +137,24 @@ func booksByIdHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(foundBook)
 		//Return updated book as result
 
+	case http.MethodDelete:
+		path := r.URL.Path
+		idStr := strings.TrimPrefix(path, "/books/")
+		id, err := strconv.Atoi(idStr)
+		if idStr == path || idStr == "" || err != nil {
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		for i, book := range books {
+			if book.ID == id {
+				books = append(books[:i], books[i+1:]...)
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		http.Error(w, "Book not found", http.StatusNotFound)
+
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 
