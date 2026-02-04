@@ -52,31 +52,75 @@ func booksHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func booksByIdHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Metod nije dozvoljen", http.StatusMethodNotAllowed)
-		return
-	}
-
-	path := r.URL.Path
-	idStr := strings.TrimPrefix(path, "/books/")
-	id, err := strconv.Atoi(idStr) //ovaj path iza books pretvaram da je broj i pamti u id
-	if idStr == path || idStr == "" || err != nil {
-		http.Error(w, "Nevalidan ID", http.StatusBadRequest)
-		return
-	}
-	var foundBook *Book
-	for i := range books {
-		if books[i].ID == id {
-			foundBook = &books[i]
-			break
+	switch r.Method {
+	case http.MethodGet:
+		path := r.URL.Path
+		idStr := strings.TrimPrefix(path, "/books/")
+		id, err := strconv.Atoi(idStr) //ovaj path iza books pretvaram da je broj i pamti u id
+		if idStr == path || idStr == "" || err != nil {
+			http.Error(w, "Nevalidan ID", http.StatusBadRequest)
+			return
 		}
-	}
+		var foundBook *Book
+		for i := range books {
+			if books[i].ID == id {
+				foundBook = &books[i]
+				break
+			}
+		}
 
-	if foundBook == nil {
-		http.Error(w, "Knjiga nije pronadjena", http.StatusNotFound)
-		return
+		if foundBook == nil {
+			http.Error(w, "Knjiga nije pronadjena", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(foundBook)
+	case http.MethodPut:
+		path := r.URL.Path
+		idStr := strings.TrimPrefix(path, "/books/")
+		id, err := strconv.Atoi(idStr)
+		if idStr == path || idStr == "" || err != nil {
+			http.Error(w, "Nevalidan ID", http.StatusBadRequest)
+			return
+		}
+
+		var foundBook *Book
+		for i := range books {
+			if books[i].ID == id {
+				foundBook = &books[i]
+				break
+			}
+
+			if foundBook == nil {
+				http.Error(w, "Book is not found", http.StatusNotFound)
+				return
+			}
+
+			var updatedBook Book
+			err = json.NewDecoder(r.Body).Decode(&updatedBook)
+			if err != nil {
+				http.Error(w, "Invalid JSON FORMAT", http.StatusBadRequest)
+				return
+			}
+
+			if updatedBook.Title == "" || updatedBook.Author == "" {
+				http.Error(w, "Missing data about the book", http.StatusBadRequest)
+				return
+			}
+
+			foundBook.Title = updatedBook.Title
+			foundBook.Author = updatedBook.Author
+			foundBook.Year = updatedBook.Year
+			foundBook.Price = updatedBook.Price
+			foundBook.IsRead = updatedBook.IsRead
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(foundBook)
+		}
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(foundBook)
 }
