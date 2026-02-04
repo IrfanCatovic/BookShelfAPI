@@ -53,6 +53,7 @@ func booksHandler(w http.ResponseWriter, r *http.Request) {
 
 func booksByIdHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
+	//Find book by id
 	case http.MethodGet:
 		path := r.URL.Path
 		idStr := strings.TrimPrefix(path, "/books/")
@@ -76,49 +77,66 @@ func booksByIdHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(foundBook)
+
+		//Update book
 	case http.MethodPut:
+
 		path := r.URL.Path
 		idStr := strings.TrimPrefix(path, "/books/")
 		id, err := strconv.Atoi(idStr)
 		if idStr == path || idStr == "" || err != nil {
-			http.Error(w, "Nevalidan ID", http.StatusBadRequest)
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
 			return
 		}
-
+		//look for book
+		//here I copy book with that id to foundBook so later when I update foundBook I actually update book in books slice
 		var foundBook *Book
 		for i := range books {
 			if books[i].ID == id {
 				foundBook = &books[i]
 				break
 			}
-
-			if foundBook == nil {
-				http.Error(w, "Book is not found", http.StatusNotFound)
-				return
-			}
-
-			var updatedBook Book
-			err = json.NewDecoder(r.Body).Decode(&updatedBook)
-			if err != nil {
-				http.Error(w, "Invalid JSON FORMAT", http.StatusBadRequest)
-				return
-			}
-
-			if updatedBook.Title == "" || updatedBook.Author == "" {
-				http.Error(w, "Missing data about the book", http.StatusBadRequest)
-				return
-			}
-
-			foundBook.Title = updatedBook.Title
-			foundBook.Author = updatedBook.Author
-			foundBook.Year = updatedBook.Year
-			foundBook.Price = updatedBook.Price
-			foundBook.IsRead = updatedBook.IsRead
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(foundBook)
 		}
+
+		if foundBook == nil {
+			http.Error(w, "Book is not found", http.StatusNotFound)
+			return
+		}
+
+		var updatedBook Book
+		err = json.NewDecoder(r.Body).Decode(&updatedBook)
+
+		if err != nil {
+			http.Error(w, "Invalid JSON FORMAT", http.StatusBadRequest)
+			return
+		}
+
+		if updatedBook.Title == "" || updatedBook.Author == "" {
+			http.Error(w, "Missing data about the book", http.StatusBadRequest)
+			return
+		}
+
+		//Update fields
+		if updatedBook.Title != "" {
+			foundBook.Title = updatedBook.Title
+		}
+		if updatedBook.Author != "" {
+			foundBook.Author = updatedBook.Author
+		}
+		if updatedBook.Year != 0 {
+			foundBook.Year = updatedBook.Year
+		}
+		if updatedBook.Price != 0 {
+			foundBook.Price = updatedBook.Price
+		}
+
+		foundBook.IsRead = updatedBook.IsRead
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(foundBook)
+		//Return updated book as result
+
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 
